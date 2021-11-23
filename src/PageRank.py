@@ -1,4 +1,6 @@
 import sys
+import time
+
 from scipy.sparse import csr_matrix as csr
 import numpy as np
 
@@ -44,13 +46,16 @@ def pageRank(G: np.ndarray, d: float, eps: float) -> (list, int):
     ranks = np.ones(n) / n
     r = 0
     constant = ((1 - d) / G.shape[0])
+    t0 = time.time()
     while True:
         r += 1
         ranksP = ((G @ ranks) * d) + constant
         if norm(ranks - ranksP) < eps:
+            print(f"time elapsed: {time.time() - t0:.08f}")
             return ranksP, r
         else:
             ranks = ranksP
+
 
 
 if __name__ == '__main__':
@@ -68,13 +73,13 @@ d={d}, eps={eps}\n""")
 
     csr_m = csr((np.ones(len(V)), (V[...,2], V[...,0])), shape=(nNodes, nNodes))
 
-    # for i, _, j, _ in V:
-    #     matrix[j, i] += 1
+    for i, _, j, _ in V:
+        matrix[j, i] += 1
 
     counts = np.count_nonzero(matrix, axis=0)
     counts[counts == 0] = 1
     csr_m = csr_m.multiply(1 / counts)
-    pageRanki, niterations = pageRank(matrix, d, eps)
+    pageRanki, niterations = pageRank(csr_m, d, eps)
 
     sort_idx = np.argsort(pageRanki)[::-1]
     inv_map = {v: k for k, v in conversions.items()}
