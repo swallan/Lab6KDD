@@ -76,9 +76,15 @@ d={d}, eps={eps}\n""")
     for i, _, j, _ in V:
         matrix[j, i] += 1
 
-    counts = np.count_nonzero(matrix, axis=0)
-    counts[counts == 0] = 1
-    csr_m = csr_m.multiply(1 / counts)
+    # counts = np.count_nonzero(matrix, axis=0)
+    sp_matrix = csr_m.tocoo()
+    col_ind = sp_matrix.col
+    counts, unqiues = np.unique(col_ind, return_counts=1)
+    all_ones = np.ones(324)
+    all_ones[counts] = unqiues
+
+    csr_m = csr_m.multiply(1 / all_ones)
+    # matrix = matrix * (1/counts)
     pageRanki, niterations = pageRank(csr_m, d, eps)
 
     sort_idx = np.argsort(pageRanki)[::-1]
