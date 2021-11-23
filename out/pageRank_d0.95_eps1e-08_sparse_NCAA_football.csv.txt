@@ -1,0 +1,14 @@
+Running PageRank with data/NCAA_football.csv
+d=0.95, eps=1e-08
+After n=160 iterations:
+0.03624781 : Mississippi 0
+0.02841791 : Florida 1
+0.01871343 : WakeForest 2
+0.01657212 : Utah 3
+0.01618637 : Alabama 4
+0.01535096 : VirginiaTech 5
+0.01464470 : Vanderbilt 6
+0.01410966 : Oklahoma 7
+0.01394165 : BostonCollege 8
+0.01384462 : OregonState 9
+np.sum(pageRanks) = 0.6837502911
