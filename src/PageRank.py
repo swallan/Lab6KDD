@@ -79,4 +79,4 @@ if __name__ == '__main__':
     names = [inv_map[x] for x in allNodes[sort_idx]]
     for i, name in enumerate(names[:10]):
         print(f"{ranks_sorted[i]:<.08f} : {name}")
-    print(pageRanki)
+    # print(pageRanki)
