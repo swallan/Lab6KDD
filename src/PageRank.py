@@ -2,6 +2,8 @@ import sys
 import time
 
 from scipy.sparse import csr_matrix as csr
+from scipy.sparse import csc_matrix as csc
+
 from numpy.linalg import norm
 import numpy as np
 
@@ -13,7 +15,7 @@ def load_data(fileName: str):
     outData = []
     with open(fileName, 'r') as f:
         for ln in f.readlines():
-            idx += 1
+
             if idx % 1000000 == 0:
                 print(f"{idx / 68993773 * 100:.04f}%")
             if '#' not in ln:
@@ -31,21 +33,21 @@ def load_data(fileName: str):
                     arr[0], arr[2] = arr[2], arr[0]
                     # need to swap the order since WINNING teams should come send
 
-                # if arr[0] in conversions.keys():
-                #     arr[0] = conversions[arr[0]]
-                # else:
-                #     conversions[arr[0]] = idx
-                #     idx += 1
-                #     arr[0] = conversions[arr[0]]
-                #
-                # if arr[2] in conversions.keys():
-                #     arr[2] = conversions[arr[2]]
-                # else:
-                #     conversions[arr[2]] = idx
-                #     idx += 1
-                #     arr[2] = conversions[arr[2]]
-                conversions[arr[2]] = arr[2]
-                conversions[arr[0]] = arr[0]
+                if arr[0] in conversions.keys():
+                    arr[0] = conversions[arr[0]]
+                else:
+                    conversions[arr[0]] = idx
+                    idx += 1
+                    arr[0] = conversions[arr[0]]
+
+                if arr[2] in conversions.keys():
+                    arr[2] = conversions[arr[2]]
+                else:
+                    conversions[arr[2]] = idx
+                    idx += 1
+                    arr[2] = conversions[arr[2]]
+                # conversions[arr[2]] = arr[2]
+                # conversions[arr[0]] = arr[0]
                 outData.append(arr[:4])
             else:
                 print(ln, end="")
@@ -66,6 +68,7 @@ def pageRank(G: np.ndarray, d: float, eps: float) -> (list, int):
             print(f"iteration: {r}")
         r += 1
         ranksP = ((G @ ranks) * d) + constant
+        # print(np.count_nonzero(np.where(ranksP == constant)))
         if norm(ranks - ranksP) < eps:
             print(f"done. time elapsed: {time.time() - t0:.08f}")
             return ranksP, r, time.time() - t0
@@ -84,6 +87,8 @@ d={d}, eps={eps}\n""")
     allNodes = np.unique(np.concatenate((V[..., 0], V[..., 2])))
     nNodes = len(allNodes)
 
+
+
     # form sparse matrix. Format: data is all ones,
     # data are from input with (data, (row_idx, col_idx))), then shape
     csr_m = csr((np.ones(len(V)), (V[..., 2], V[..., 0])),
@@ -93,6 +98,26 @@ d={d}, eps={eps}\n""")
     # inside the matrix
     sp_matrix = csr_m.tocoo()
     col_ind = sp_matrix.col
+
+
+    nodes = set(allNodes)
+    cols = set(col_ind)
+    sinks = list(nodes - cols)
+    print(f"{len(sinks)} sinks")
+    for sink in sinks:
+        sink_addition = np.zeros((len(nodes), 4))
+        sink_addition[..., 0] = sink
+        sink_addition[..., 2] = allNodes
+        V = np.concatenate((V, sink_addition))
+
+    csr_m = csr((np.ones(len(V)), (V[..., 2], V[..., 0])),
+                shape=(nNodes, nNodes))
+
+    # calculate the counts per column, then adjust the probabilities
+    # inside the matrix
+    sp_matrix = csr_m.tocoo()
+    col_ind = sp_matrix.col
+
     counts, unqiues = np.unique(col_ind, return_counts=1)
     all_ones = np.ones(sp_matrix.shape[0])
     all_ones[counts] = unqiues
@@ -108,10 +133,13 @@ d={d}, eps={eps}\n""")
     names = [inv_map[x] for x in allNodes[sort_idx]]
     s += f"readTime: {dataLoadTime:.02f}s, processTime: {processingTime:.02f}s\n"
     s += f"After n={niterations} iterations:\n"
-    for i, name in enumerate(names[:10]):
+    for i, name in enumerate(names):
         s += f"{ranks_sorted[i]:<.08f} : {name} {i}\n"
+        if i >= 10:
+            s2 = s
     s += f"np.sum(pageRanks) = {np.sum(pageRanki):.10f}\n"
-    print(s)
+    s2 += f"np.sum(pageRanks) = {np.sum(pageRanki):.10f}\n"
+    print(s2)
     with open(
             f"out/pageRank_d{d}_eps{eps}_sparse_{dataSource.split('/')[-1].replace('.txt', '')}.txt",
             'w') as f:

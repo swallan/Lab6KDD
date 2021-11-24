@@ -1,6 +1,7 @@
 Running PageRank with data/NCAA_football.csv
 d=0.95, eps=1e-08
-readTime: 0.01, processTime: 0.01After n=160 iterations:
+readTime: 0.01s, processTime: 0.00s
+After n=160 iterations:
 0.03624781 : Mississippi 0
 0.02841791 : Florida 1
 0.01871343 : WakeForest 2
