@@ -52,8 +52,7 @@ def load_data(fileName: str):
             else:
                 print(ln, end="")
 
-    print("done.")
-    return np.asarray(outData, dtype=int), conversions, time.time() - t0
+    return np.asarray(outData, dtype=int), conversions,  t0
 
 
 def pageRank(G: np.ndarray, d: float, eps: float) -> (list, int):
@@ -102,26 +101,42 @@ d={d}, eps={eps}\n""")
 
     nodes = set(allNodes)
     cols = set(col_ind)
+    sinksS = nodes - cols
     sinks = list(nodes - cols)
+
     print(f"{len(sinks)} sinks")
-    for sink in sinks:
-        sink_addition = np.zeros((len(nodes), 4))
-        sink_addition[..., 0] = sink
-        sink_addition[..., 2] = allNodes
-        V = np.concatenate((V, sink_addition))
+    if len(sinks) > 0:
+        print("If there are a lot, this might take a while.")
+        allApplicable = np.asarray([v for v in V if v[2] in sinksS])
+        allApplicable[:, [0, 2]] = allApplicable[:, [2, 0]]
+        V = np.concatenate((V, allApplicable))
+
+    # for sink in sinks:
+    #     # find the inlinks
+    #     inlinks = V[V[..., 2] == sink]
+    #     inlinks[:, [0, 2]] = inlinks[:, [2, 0]]
+    #     V = np.concatenate((V, inlinks))
 
     csr_m = csr((np.ones(len(V)), (V[..., 2], V[..., 0])),
                 shape=(nNodes, nNodes))
+
 
     # calculate the counts per column, then adjust the probabilities
     # inside the matrix
     sp_matrix = csr_m.tocoo()
     col_ind = sp_matrix.col
+    nodes = set(allNodes)
+    cols = set(col_ind)
+    sinks = list(nodes - cols)
+    print(f"After fixing: {len(sinks)} sinks")
 
     counts, unqiues = np.unique(col_ind, return_counts=1)
     all_ones = np.ones(sp_matrix.shape[0])
     all_ones[counts] = unqiues
     csr_m = csr_m.multiply(1 / all_ones)
+    print("done.")
+
+    dataLoadTime = time.time() - dataLoadTime
 
     # calculate pagerank
     pageRanki, niterations, processingTime = pageRank(csr_m, d, eps)
@@ -135,8 +150,9 @@ d={d}, eps={eps}\n""")
     s += f"After n={niterations} iterations:\n"
     for i, name in enumerate(names):
         s += f"{ranks_sorted[i]:<.08f} : {name} {i}\n"
-        if i >= 10:
+        if i < 10:
             s2 = s
+            break
     s += f"np.sum(pageRanks) = {np.sum(pageRanki):.10f}\n"
     s2 += f"np.sum(pageRanks) = {np.sum(pageRanki):.10f}\n"
     print(s2)
