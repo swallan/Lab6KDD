@@ -1,5 +1,6 @@
 Running PageRank with data/amazon0505.txt
 d=0.95, eps=1e-08
+readTime: 11.79s, processTime: 1.48s
 After n=178 iterations:
 0.00393195 : 593 0
 0.00369840 : 595 1

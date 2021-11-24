@@ -1,2 +1,7 @@
 # Project exclude paths
 /venv/
+/data/amazon0505.txt
+/data/p2p-Gnutella05.txt
+/data/soc-LiveJournal1.txt
+/data/soc-sign-Slashdot081106.txt
+/data/wiki-Vote.txt
