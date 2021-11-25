@@ -79,13 +79,13 @@ if __name__ == '__main__':
     eps = float(sys.argv[3])
     s = (f"""Running PageRank with {dataSource}
 d={d}, eps={eps}\n""")
+
     V, conversions, dataLoadTime = load_data(dataSource)
+    s += f"{len(V)} edges.\n"
     V = np.concatenate((V[..., 0].reshape(len(V), -1), V[..., 2].reshape(len(V), -1)), axis=1)
-    V = np.unique(V, axis=0)
+    # V = np.unique(V, axis=0)
     allNodes = np.unique(np.concatenate((V[..., 0], V[..., 1])))
     nNodes = len(allNodes)
-
-
 
     # form sparse matrix. Format: data is all ones,
     # data are from input with (data, (row_idx, col_idx))), then shape
@@ -106,7 +106,7 @@ d={d}, eps={eps}\n""")
     print(f"{len(sinks)} sinks", end='')
     if len(sinks) > 0:
         print(", fixing with method ", end='')
-        if True:
+        if int(sys.argv[4]):
             print("<sink => origin>")
             allApplicable = np.asarray([v for v in V if v[1] in sinksS])
             allApplicable[:, [0, 1]] = allApplicable[:, [1, 0]]
