@@ -52,7 +52,7 @@ def load_data(fileName: str):
             else:
                 print(ln, end="")
 
-    return np.asarray(outData, dtype=int), conversions,  t0
+    return np.asarray(outData, dtype=np.float64), conversions,  t0
 
 
 def pageRank(G: np.ndarray, d: float, eps: float) -> (list, int):
@@ -63,8 +63,6 @@ def pageRank(G: np.ndarray, d: float, eps: float) -> (list, int):
     constant = ((1 - d) / G.shape[0])
     t0 = time.time()
     while True:
-        if r % 100 == 0:
-            print(f"iteration: {r}")
         r += 1
         ranksP = ((G @ ranks) * d) + constant
         # print(np.count_nonzero(np.where(ranksP == constant)))
@@ -82,15 +80,16 @@ if __name__ == '__main__':
     s = (f"""Running PageRank with {dataSource}
 d={d}, eps={eps}\n""")
     V, conversions, dataLoadTime = load_data(dataSource)
-
-    allNodes = np.unique(np.concatenate((V[..., 0], V[..., 2])))
+    V = np.concatenate((V[..., 0].reshape(len(V), -1), V[..., 2].reshape(len(V), -1)), axis=1)
+    V = np.unique(V, axis=0)
+    allNodes = np.unique(np.concatenate((V[..., 0], V[..., 1])))
     nNodes = len(allNodes)
 
 
 
     # form sparse matrix. Format: data is all ones,
     # data are from input with (data, (row_idx, col_idx))), then shape
-    csr_m = csr((np.ones(len(V)), (V[..., 2], V[..., 0])),
+    csr_m = csr((np.ones(len(V)), (V[..., 1], V[..., 0])),
                 shape=(nNodes, nNodes))
 
     # calculate the counts per column, then adjust the probabilities
@@ -102,44 +101,39 @@ d={d}, eps={eps}\n""")
     nodes = set(allNodes)
     cols = set(col_ind)
     sinksS = nodes - cols
-    sinks = list(nodes - cols)
+    sinks = np.asarray(list(nodes - cols))
 
-    print(f"{len(sinks)} sinks")
+    print(f"{len(sinks)} sinks", end='')
     if len(sinks) > 0:
-        print("If there are a lot, this might take a while.")
-        allApplicable = np.asarray([v for v in V if v[2] in sinksS])
-        allApplicable[:, [0, 2]] = allApplicable[:, [2, 0]]
-        V = np.concatenate((V, allApplicable))
+        print(", fixing with method ", end='')
+        if True:
+            print("<sink => origin>")
+            allApplicable = np.asarray([v for v in V if v[1] in sinksS])
+            allApplicable[:, [0, 1]] = allApplicable[:, [1, 0]]
+            V = np.concatenate((V, allApplicable))
+        else:
+            print("<sink => sink>")
+            allApplicable = np.zeros((len(sinks), 2))
+            allApplicable[..., 0] = sinks
+            allApplicable[..., 1] = sinks
+            V = np.concatenate((V, allApplicable))
 
-    # for sink in sinks:
-    #     # find the inlinks
-    #     inlinks = V[V[..., 2] == sink]
-    #     inlinks[:, [0, 2]] = inlinks[:, [2, 0]]
-    #     V = np.concatenate((V, inlinks))
-
-    csr_m = csr((np.ones(len(V)), (V[..., 2], V[..., 0])),
+    csr_m = csr((np.ones(len(V)), (V[..., 1], V[..., 0])),
                 shape=(nNodes, nNodes))
-
-
     # calculate the counts per column, then adjust the probabilities
     # inside the matrix
     sp_matrix = csr_m.tocoo()
     col_ind = sp_matrix.col
-    nodes = set(allNodes)
     cols = set(col_ind)
     sinks = list(nodes - cols)
-    print(f"After fixing: {len(sinks)} sinks")
 
-    counts, unqiues = np.unique(col_ind, return_counts=1)
-    all_ones = np.ones(sp_matrix.shape[0])
-    all_ones[counts] = unqiues
+    all_ones = np.sum(csr_m, axis=0)
     csr_m = csr_m.multiply(1 / all_ones)
-    print("done.")
 
     dataLoadTime = time.time() - dataLoadTime
 
     # calculate pagerank
-    pageRanki, niterations, processingTime = pageRank(csr_m, d, eps)
+    pageRanki, nIterations, processingTime = pageRank(csr_m, d, eps)
 
     # print results
     sort_idx = np.argsort(pageRanki)[::-1]
@@ -147,12 +141,12 @@ d={d}, eps={eps}\n""")
     ranks_sorted = pageRanki[sort_idx]
     names = [inv_map[x] for x in allNodes[sort_idx]]
     s += f"readTime: {dataLoadTime:.02f}s, processTime: {processingTime:.02f}s\n"
-    s += f"After n={niterations} iterations:\n"
+    s += f"After n={nIterations} iterations:\n"
     for i, name in enumerate(names):
         s += f"{ranks_sorted[i]:<.08f} : {name} {i}\n"
-        if i < 10:
+        if i == 10:
             s2 = s
-            break
+            # break
     s += f"np.sum(pageRanks) = {np.sum(pageRanki):.10f}\n"
     s2 += f"np.sum(pageRanks) = {np.sum(pageRanki):.10f}\n"
     print(s2)
